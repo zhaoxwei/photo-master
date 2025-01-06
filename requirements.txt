@@ -1,0 +1,9 @@
+Pillow
+imagehash
+opencv-python
+numpy
+matplotlib
+scikit-image
+torch
+torchvision
+facenet-pytorch 
