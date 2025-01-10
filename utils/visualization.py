@@ -16,50 +16,50 @@ class ImageVisualizer:
         self.axes = None
 
     def get_layout(self, n_images):
-        """根据图片数量确定布局"""
+        """Determine layout based on number of images"""
         if n_images <= 2:
-            return 1, n_images  # 使用实际数量的列数，让图片最大化
+            return 1, n_images  # Use actual number of columns, maximize images
         elif n_images <= 4:
-            return 1, n_images  # 使用实际数量的列数
+            return 1, n_images  # Use actual number of columns
         elif n_images <= 6:
-            return 2, 3  # 2行3列，让图片更大
+            return 2, 3  # 2 rows, 3 columns, maximize images
         else:
-            return 3, 3  # 3行3列，让图片更大
+            return 3, 3  # 3 rows, 3 columns, maximize images
 
     def show_all_groups(self, similar_groups):
-        """显示所有相似图片组，支持左右箭头导航"""
+        """Display all similar image groups, support left and right arrow navigation"""
         self.groups = [sorted(group, key=lambda x: x[1], reverse=True) 
                       for group in similar_groups]
         self.current_group = 0
         
-        # 获取屏幕分辨率
+        # Get screen resolution
         root = tk.Tk()
         screen_width = root.winfo_screenwidth()
         screen_height = root.winfo_screenheight()
         root.destroy()
         
-        # 获取最大图片数量并计算布局
+        # Get maximum image count and calculate layout
         max_images = max(len(group) for group in self.groups)
         rows, cols = self.get_layout(max_images)
         
-        # 设置图片显示尺寸
+        # Set image display size
         dpi = 96
         fig_width = screen_width / dpi * 0.95
         
-        # 根据行数和图片数量调整高度
+        # Adjust height based on number of rows and images
         if rows == 1:
-            fig_height = screen_height / dpi * 0.85  # 增加单行高度
+            fig_height = screen_height / dpi * 0.85  # Increase single row height
         else:
-            fig_height = screen_height / dpi * 0.9  # 增加多行高度
+            fig_height = screen_height / dpi * 0.9  # Increase multi-row height
         
-        # 创建图形窗口
+        # Create figure window
         plt.rcParams['figure.figsize'] = [fig_width, fig_height]
         plt.rcParams['figure.dpi'] = dpi
         
         self.fig, self.axes = plt.subplots(rows, cols)
-        self.axes = np.atleast_2d(self.axes)  # 确保是2D数组
+        self.axes = np.atleast_2d(self.axes)  # Ensure 2D array
         
-        # 配置键盘和工具栏导航
+        # Configure keyboard and toolbar navigation
         def handle_navigation(event):
             if isinstance(event, str):
                 direction = event
@@ -73,10 +73,10 @@ class ImageVisualizer:
                 self.current_group -= 1
                 self.update_display()
         
-        # 添加键盘事件监听
+            # Add keyboard event listener
         self.fig.canvas.mpl_connect('key_press_event', handle_navigation)
         
-        # 配置工具栏按钮
+        # Configure toolbar buttons
         toolbar = self.fig.canvas.manager.toolbar
         if hasattr(toolbar, '_actions'):  # PyQt backend
             for action in toolbar._actions.values():
@@ -93,45 +93,45 @@ class ImageVisualizer:
             except:
                 print("Warning: Could not configure toolbar buttons")
         
-        # 初始显示
+        # Initial display
         self.update_display()
         plt.show()
 
     def update_display(self):
-        """更新当前显示的图片组"""
+        """Update current displayed image group"""
         if not self.groups:
             return
             
         group = self.groups[self.current_group]
         n_images = len(group)
         
-        # 更新窗口标题
+        # Update window title
         self.fig.canvas.manager.set_window_title(
             f'Similar Images - Group {self.current_group + 1}/{len(self.groups)}'
         )
         
-        # 根据行数和图片数量调整布局
+        # Adjust layout based on number of rows and images
         rows, cols = self.get_layout(n_images)
         if rows == 1:
-            # 单行布局
+            # Single row layout
             plt.subplots_adjust(
-                left=0.05, right=0.95,  # 增加边距
-                top=0.85,  # 减少顶部空间避免工具栏遮挡
-                bottom=0.1,  # 增加底部空间
-                wspace=0.1,  # 减小图片间距
+                left=0.05, right=0.95,  # Increase margin
+                top=0.85,  # Reduce top space to avoid toolbar遮挡
+                bottom=0.1,  # Increase bottom space
+                wspace=0.1,  # Reduce image spacing
                 hspace=0.35
             )
         elif rows == 2:
-            # 两行布局
+            # Two row layout
             plt.subplots_adjust(
                 left=0.05, right=0.95,
-                top=0.88,  # 减少顶部空间避免工具栏遮挡
+                top=0.88,  # Reduce top space to avoid toolbar遮挡
                 bottom=0.1,
                 wspace=0.1,
-                hspace=0.5  # 增加行间距
+                hspace=0.5  # Increase row spacing
             )
         else:
-            # 三行布局
+            # Three row layout
             plt.subplots_adjust(
                 left=0.05, right=0.95,
                 top=0.9,
@@ -140,48 +140,48 @@ class ImageVisualizer:
                 hspace=0.4
             )
         
-        # 清除所有axes
+        # Clear all axes
         for ax_row in self.axes:
             for ax in ax_row:
                 ax.clear()
                 ax.axis('off')
                 ax.set_visible(False)
         
-        # 显示当前组的图片
+        # Display images in current group
         for idx, (path, score, metrics) in enumerate(group):
             row = idx // cols
             col = idx % cols
             
             if row < self.axes.shape[0] and col < self.axes.shape[1]:
                 self.axes[row, col].set_visible(True)
-                # 读取图片
+                # Read image
                 img = cv2.imread(path)
                 if img is None:
                     continue
                 img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
                 
-                # 在图片上添加分数
+                # Add score to image
                 height, width = img.shape[:2]
                 font = cv2.FONT_HERSHEY_DUPLEX
                 font_scale = min(width, height) / 1000
                 thickness = max(2, int(font_scale * 2))
                 
-                # 创建半透明背景
+                # Create semi-transparent background
                 overlay = img.copy()
-                bg_height = int(250 * font_scale)  # 增加背景高度
-                bg_width = int(350 * font_scale)   # 增加背景宽度
+                bg_height = int(250 * font_scale)  # Increase background height
+                bg_width = int(350 * font_scale)   # Increase background width
                 cv2.rectangle(overlay, (0, 0), (bg_width, bg_height), (0, 0, 0), -1)
                 img = cv2.addWeighted(overlay, 0.3, img, 0.7, 0)
                 
-                # 添加分数信息
+                # Add score information
                 y_offset = int(bg_height * 0.15)
-                line_height = int(bg_height * 0.18)  # 增加行距
+                line_height = int(bg_height * 0.18)  # Increase line spacing
                 
-                # 总分
+                # Total score
                 self._add_text_with_outline(img, f"Total: {score:.1f}", 10, y_offset, 
                                           font, font_scale, thickness)
                 
-                # 分项分数
+                # Sub-score
                 y_offset += line_height
                 norm_scores = metrics['normalized_scores']
                 self._add_text_with_outline(img, 
@@ -203,10 +203,10 @@ class ImageVisualizer:
                     f"Aesth: {norm_scores['aesthetic']:.1f}",
                     10, y_offset, font, font_scale*0.8, thickness)
                 
-                # 显示图片
+                # Display image
                 self.axes[row, col].imshow(img)
                 
-                # 更新标题，只显示组号、编号和文件名
+                # Update title, only show group number, index, and file name
                 title = f"Group {self.current_group + 1} - #{idx + 1}\n{os.path.basename(path)}"
                 
                 if rows == 1:
@@ -226,26 +226,26 @@ class ImageVisualizer:
         self.fig.canvas.draw_idle()
 
     def _add_text_with_outline(self, img, text, x, y, font, font_scale, thickness):
-        """添加带描边的文字"""
-        # 添加黑色描边
+        """Add text with outline"""
+        # Add black outline
         cv2.putText(img, text, (x, y), font, font_scale,
                    (0, 0, 0), thickness + 1)
-        # 添加白色文字
+        # Add white text
         cv2.putText(img, text, (x, y), font, font_scale,
                    (255, 255, 255), thickness)
 
     @staticmethod
     def draw_score_on_image(image_path, score):
-        """在图片上绘制分数并保存"""
+        """Draw score on image and save"""
         img = cv2.imread(image_path)
         height, width = img.shape[:2]
         
-        # 设置字体参数
+        # Set font parameters
         font = cv2.FONT_HERSHEY_SIMPLEX
         font_scale = min(width, height) / 1000
         thickness = max(1, int(font_scale * 2))
         
-        # 创建半透明背景
+        # Create semi-transparent background
         overlay = img.copy()
         pt1 = (0, 0)
         pt2 = (200, 40)
@@ -253,12 +253,12 @@ class ImageVisualizer:
         alpha = 0.6
         img = cv2.addWeighted(overlay, alpha, img, 1 - alpha, 0)
         
-        # 添加分数文本
+        # Add score text
         score_text = f"Score: {score:.1f}"
         cv2.putText(img, score_text, (10, 30), font, font_scale,
                    (255, 255, 255), thickness)
         
-        # 保存或返回图片
+        # Save or return image
         output_path = f"{os.path.splitext(image_path)[0]}_scored{os.path.splitext(image_path)[1]}"
         cv2.imwrite(output_path, img)
         return output_path 

@@ -8,11 +8,11 @@ from models.aesthetic_analyzer import AestheticAnalyzer
 
 class ImageQualityAnalyzer:
     def __init__(self):
-        """初始化图像质量分析器"""
+        """Initialize image quality analyzer"""
         self.aesthetic_analyzer = AestheticAnalyzer()
         self.face_analyzer = LightFaceAnalyzer()
         
-        # 权重配置
+        # Weight configuration
         self.weights = {
             'resolution': 0.25,
             'clarity': 0.25,
@@ -21,22 +21,22 @@ class ImageQualityAnalyzer:
         }
 
     def analyze_image(self, image_path):
-        """分析图片质量"""
+        """Analyze image quality"""
         try:
-            # 1. 技术指标评分
+            # 1. Technical score
             resolution = self.get_resolution_score(image_path)
             
-            # 2. 清晰度评分
+            # 2. Clarity score
             clarity = self.get_clarity_score(image_path)
             
-            # 3. 人脸评分
+            # 3. Face score
             face_score, face_analysis, face_time = self.face_analyzer.analyze(image_path)
             
-            # 4. 美学评分
+            # 4. Aesthetic score
             aesthetic_result = self.aesthetic_analyzer.analyze(image_path)
             aesthetic_score = aesthetic_result.get('aesthetic_score', 0)
             
-            # 标准化分数
+            # Normalize scores
             normalized_scores = {
                 'resolution': resolution,
                 'clarity': clarity,
@@ -44,11 +44,11 @@ class ImageQualityAnalyzer:
                 'aesthetic': aesthetic_score
             }
             
-            # 计算总分
+            # Calculate total score
             total_score = sum(score * self.weights[metric] 
                             for metric, score in normalized_scores.items())
             
-            # 返回详细结果
+            # Return detailed results
             return total_score, {
                 'resolution': resolution,
                 'clarity': clarity,
@@ -67,19 +67,19 @@ class ImageQualityAnalyzer:
             return 0, {}
 
     def get_resolution_score(self, image_path):
-        """计算分辨率评分"""
+        """Calculate resolution score"""
         try:
             img = cv2.imread(image_path)
             if img is None:
                 return 0
             
             height, width = img.shape[:2]
-            mp = (width * height) / 1_000_000  # 转换为百万像素
+            mp = (width * height) / 1_000_000  # Convert to million pixels
             
-            # 评分规则：
-            # 12MP = 80分
-            # 24MP = 90分
-            # 48MP = 95分
+            # Scoring rules:
+            # 12MP = 80 points
+            # 24MP = 90 points
+            # 48MP = 95 points
             if mp <= 12:
                 score = 80 * (mp / 12)
             elif mp <= 24:
@@ -96,25 +96,25 @@ class ImageQualityAnalyzer:
             return 0
 
     def get_clarity_score(self, image_path):
-        """计算清晰度评分"""
+        """Calculate clarity score"""
         try:
             img = cv2.imread(image_path)
             if img is None:
                 return 0
             
-            # 转换为灰度图
+            # Convert to grayscale
             gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
             
-            # 计算Laplacian方差
+            # Calculate Laplacian variance
             laplacian_var = cv2.Laplacian(gray, cv2.CV_64F).var()
             
-            # 计算Sobel梯度
+            # Calculate Sobel gradient
             sobelx = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=3)
             sobely = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=3)
             sobel_mag = np.sqrt(sobelx**2 + sobely**2)
             sobel_mean = np.mean(sobel_mag)
             
-            # 综合评分
+            # Overall score
             clarity_score = min(100, (laplacian_var / 500) * 50 + (sobel_mean / 50) * 50)
             
             return clarity_score
@@ -124,7 +124,7 @@ class ImageQualityAnalyzer:
             return 0 
 
     def compute_hash(self, image_path):
-        """计算图像哈希值"""
+        """Compute image hash"""
         try:
             return str(imagehash.average_hash(Image.open(image_path)))
         except Exception as e:

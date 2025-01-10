@@ -7,8 +7,8 @@ import time
 class PytorchAnalyzer:
     def __init__(self, model_type='mobilenet'):
         """
-        初始化 PyTorch 分析器
-        model_type: 只支持 'mobilenet'
+        Initialize PyTorch analyzer
+        model_type: 'mobilenet'
         """
         if model_type != 'mobilenet':
             print("Warning: Only MobileNet model is supported, using MobileNet.")
@@ -21,7 +21,6 @@ class PytorchAnalyzer:
         print(f"PyTorch analyzer initialized with MobileNet on {self.device}")
 
     def _load_model(self):
-        """加载并配置模型"""
         print("\nLoading MobileNet model...")
         model = models.mobilenet_v2(pretrained=True)
         model.classifier[1] = nn.Linear(model.last_channel, 1)
@@ -32,7 +31,7 @@ class PytorchAnalyzer:
         return model
 
     def _get_transforms(self):
-        """获取图像预处理转换"""
+        """Obtain image preprocessing transformations"""
         return transforms.Compose([
             transforms.Resize(256),
             transforms.CenterCrop(224),
@@ -45,20 +44,20 @@ class PytorchAnalyzer:
 
     @torch.no_grad()
     def analyze(self, image_path):
-        """分析图片"""
+        """Analyze image"""
         try:
-            # 计时开始
+            # Start timing
             start_time = time.time()
             
-            # 加载和预处理图片
+            # Load and preprocess image
             image = Image.open(image_path).convert('RGB')
             input_tensor = self.transform(image).unsqueeze(0).to(self.device)
             
-            # 模型推理
+            # Model inference
             output = self.model(input_tensor)
-            score = float(torch.sigmoid(output).item() * 100)  # 转换为0-100分
+            score = float(torch.sigmoid(output).item() * 100)  # Convert to 0-100
             
-            # 计算处理时间
+            # Calculate processing time
             process_time = time.time() - start_time
             
             return {
@@ -76,7 +75,7 @@ class PytorchAnalyzer:
             }
 
     def batch_analyze(self, image_paths, batch_size=4):
-        """批量分析图片"""
+        """Batch analyze images"""
         results = []
         for i in range(0, len(image_paths), batch_size):
             batch_paths = image_paths[i:i + batch_size]
@@ -94,13 +93,13 @@ class PytorchAnalyzer:
             if not batch_tensors:
                 continue
                 
-            # 处理批次
+            # Process batch
             batch = torch.stack(batch_tensors).to(self.device)
             with torch.no_grad():
                 outputs = self.model(batch)
                 scores = torch.sigmoid(outputs).cpu().numpy() * 100
             
-            # 保存结果
+            # Save results
             for path, score in zip(batch_paths, scores):
                 results.append({
                     'path': path,

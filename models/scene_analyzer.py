@@ -3,13 +3,13 @@ class SceneAnalyzer:
         self.scene_model = load_scene_detection_model()
         
     def analyze_scene(self, image):
-        # 场景分类
+        # Scene classification
         scene_type = self.detect_scene_type(image)
-        # 重要时刻检测
+        # Important moment detection
         moment_score = self.detect_important_moment(image)
-        # 群组互动分析
+        # Group interaction analysis
         group_interaction = self.analyze_group_interaction(image)
-        # 背景评估
+        # Background evaluation
         background_score = self.evaluate_background(image)
         
         return scene_type, moment_score, group_interaction, background_score 

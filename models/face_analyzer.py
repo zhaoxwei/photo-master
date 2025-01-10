@@ -34,7 +34,7 @@ class LightFaceAnalyzer:
             
             # Analyze each detected face
             for box, prob in zip(boxes, probs):
-                if prob > 0.9:  # 降低置信度阈值从0.98到0.9
+                if prob > 0.9:  # The confidence threshold is lowered from 0.98 to 0.9
                     x1, y1, x2, y2 = [int(b) for b in box]
                     face_img = img.crop((x1, y1, x2, y2))
                     
@@ -75,29 +75,29 @@ class EnhancedFaceAnalyzer:
     def __init__(self):
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.mtcnn = MTCNN(keep_all=True, device=self.device)
-        # 添加表情识别模型
+        # Add a facial expression recognition model
         self.emotion_model = EmotionNet().to(self.device)
-        # 添加人脸姿态估计
+        # Add a facial pose estimation model
         self.pose_estimator = PoseEstimator().to(self.device)
         
     def analyze(self, image_path):
-        # 现有的人脸检测
+        # Existing facial detection
         boxes, probs = self.mtcnn.detect(img)
         
         face_score = 0
         for box, prob in zip(boxes, probs):
-            # 基础分数（现有的）
+            # Base score (current)
             size_score = self.calculate_size_score(box, img.size)
             position_score = self.calculate_position_score(box, img.size)
             
-            # 新增评分项
-            emotion_score = self.analyze_emotion(face_img)  # 表情评分
-            pose_score = self.analyze_pose(face_img)       # 姿态评分
-            blur_score = self.detect_blur(face_img)        # 模糊检测
-            eyes_score = self.check_eyes_open(face_img)    # 眼睛睁开检测
+            # Add new scoring items
+            emotion_score = self.analyze_emotion(face_img)  # Facial expression score
+            pose_score = self.analyze_pose(face_img)       # Pose score
+            blur_score = self.detect_blur(face_img)        # Blur detection
+            eyes_score = self.check_eyes_open(face_img)    # Eye openness detection
             
-            # 综合评分
-            face_quality = (
+            # Overall score
+            face_quality = ( 
                 0.3 * size_score +
                 0.2 * position_score +
                 0.2 * emotion_score +

@@ -17,49 +17,49 @@ from itertools import combinations
 
 class ImageDeduplicator:
     def __init__(self, folder_path):
-        """初始化图片去重器"""
+        """Initialize image deduplicator"""
         self.folder_path = Path(folder_path)
         self.image_hashes = {}
         self.similar_groups = []
         self.duplicates = []
         self.supported_formats = {'.jpg', '.jpeg', '.png', '.bmp', '.tiff'}
         
-        # 初始化分析器
+        # Initialize analyzers
         print(f"\nInitializing analyzers...")
         self.quality_analyzer = ImageQualityAnalyzer()
         self.visualizer = ImageVisualizer()
         
-        # 缓存
+        # Cache
         self.cache = {}
 
     def get_image_quality_score(self, image_path):
-        """获取图片质量分数"""
+        """Get image quality score"""
         score, metrics = self.quality_analyzer.analyze_image(image_path)
         return score, metrics
 
     def preprocess_image(self, path):
-        """预处理图片并缓存结果"""
+        """Preprocess image and cache result"""
         if path in self.cache:
             return self.cache[path]
             
         try:
-            # 读取图片并降采样
+            # Read image and downsample
             img = cv2.imread(str(path))
             if img is None:
                 return None
                 
-            # 降采样到固定大小
-            img = cv2.resize(img, (128, 128))  # 只改小一点点
+            # Downsample to fixed size
+            img = cv2.resize(img, (128, 128))  # Just a little smaller
             
-            # 计算哈希值
+            # Compute hash
             img_hash = self.quality_analyzer.compute_hash(path)
             
-            # 计算直方图
+            # Compute histogram
             hist = cv2.calcHist([img], [0, 1, 2], None, [8, 8, 8], 
                               [0, 256, 0, 256, 0, 256])
             hist = cv2.normalize(hist, hist).flatten()
             
-            # 转换为灰度图
+            # Convert to grayscale
             gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
             
             result = {
@@ -77,34 +77,34 @@ class ImageDeduplicator:
             return None
 
     def compute_image_similarity(self, path1, path2):
-        """计算两张图片的相似度"""
-        # 获取预处理结果
+        """Compute similarity between two images"""
+        # Get preprocessed results
         data1 = self.preprocess_image(path1)
         data2 = self.preprocess_image(path2)
         
         if not data1 or not data2:
             return 0
             
-        # 1. 场景哈希比较 (检测背景是否相似)
+        # 1. Scene hash comparison (detect background similarity)
         hash_diff = sum(c1 != c2 for c1, c2 in zip(data1['hash'], data2['hash']))
         hash_similarity = 1 - (hash_diff / 64.0)
         
-        # 如果场景完全不同，直接返回
-        if hash_similarity < 0.3:  # 调整回0.3
+        # If scenes are completely different, return immediately
+        if hash_similarity < 0.3:  # Adjust back to 0.3
             return 0
             
-        # 2. 直方图比较 (检测整体颜色分布)
+        # 2. Histogram comparison (detect overall color distribution)
         hist_similarity = cv2.compareHist(data1['hist'], data2['hist'], 
                                         cv2.HISTCMP_CORREL)
         
-        # 3. SSIM比较 (检测结构相似度)
+        # 3. SSIM comparison (detect structural similarity)
         ssim_score, _ = ssim(data1['gray'], data2['gray'], full=True)
         
-        # 4. 局部区域比较 (检测细节变化)
+        # 4. Local area comparison (detect detail changes)
         img1 = data1['image']
         img2 = data2['image']
         
-        # 将图像分成3x3的网格
+        # Split image into 3x3 grid
         h, w = img1.shape[:2]
         cell_h, cell_w = h // 3, w // 3
         
@@ -117,7 +117,7 @@ class ImageDeduplicator:
                 region1 = img1[y1:y2, x1:x2]
                 region2 = img2[y1:y2, x1:x2]
                 
-                # 计算局部区域的相似度
+                # Compute similarity of local areas
                 region_hist1 = cv2.calcHist([region1], [0, 1, 2], None, [8, 8, 8], 
                                           [0, 256, 0, 256, 0, 256]).flatten()
                 region_hist2 = cv2.calcHist([region2], [0, 1, 2], None, [8, 8, 8], 
@@ -127,15 +127,15 @@ class ImageDeduplicator:
                                                   cv2.HISTCMP_CORREL)
                 local_similarities.append(region_similarity)
         
-        # 计算局部区域相似度的平均值
+        # Compute average similarity of local areas
         local_mean = np.mean(local_similarities)
         
-        # 计算最终相似度
+        # Compute final similarity
         weights = {
-            'hash': 0.35,       # 保持哈希权重
-            'histogram': 0.25,  # 保持直方图权重
-            'ssim': 0.3,       # 保持结构相似度权重
-            'local': 0.1       # 保持局部比较权重
+            'hash': 0.35,       # Keep hash weight
+            'histogram': 0.25,  # Keep histogram weight
+            'ssim': 0.3,       # Keep SSIM weight
+            'local': 0.1       # Keep local comparison weight
         }
         
         similarity = (
@@ -148,7 +148,7 @@ class ImageDeduplicator:
         return similarity
 
     def find_similar_images(self, similarity_threshold=0.65):
-        """查找相似图片"""
+        """Find similar images"""
         image_files = [
             f for f in self.folder_path.rglob("*")
             if f.suffix.lower() in self.supported_formats
@@ -157,17 +157,17 @@ class ImageDeduplicator:
         total = len(image_files)
         print(f"Found {total} images to process...")
         
-        # 预处理所有图片
+        # Preprocess all images
         print("Preprocessing images...")
         for i, path in enumerate(image_files):
             print(f"\rPreprocessing: {i+1}/{total}", end="")
             self.preprocess_image(str(path))
         print("\nPreprocessing complete!")
         
-        # 比较图片
+        # Compare images
         processed = set()
         similar_groups = []
-        self.duplicates = []  # 清空旧的duplicates列表
+        self.duplicates = []  # Clear old duplicates list
         
         print("\nComparing images...")
         for i, path1 in enumerate(image_files):
@@ -176,8 +176,8 @@ class ImageDeduplicator:
             
             print(f"\rComparing images: {i+1}/{total}...", end="")
             
-            # 找出所有与当前图片相似的图片
-            current_group = {str(path1)}  # 使用集合存储相似图片
+            # Find all images similar to the current image
+            current_group = {str(path1)}  # Use set to store similar images
             
             for path2 in image_files:
                 if str(path2) not in processed and str(path2) != str(path1):
@@ -186,7 +186,7 @@ class ImageDeduplicator:
                         current_group.add(str(path2))
                         print(f"\nFound similar: {path1} <-> {path2} (similarity: {similarity:.3f})")
             
-            # 如果找到相似图片
+            # If similar images are found
             if len(current_group) > 1:
                 group_images = []
                 print(f"\nProcessing group with {len(current_group)} images:")
@@ -196,11 +196,11 @@ class ImageDeduplicator:
                     processed.add(path)
                     print(f"  - {path} (score: {score:.1f})")
                 
-                # 保存到 image_hashes 和 similar_groups
+                # Save to image_hashes and similar_groups
                 self.image_hashes[str(path1)] = group_images
                 similar_groups.append(group_images)
                 
-                # 添加到duplicates列表（除了最高质量的图片）
+                # Add to duplicates list (excluding highest quality image)
                 sorted_images = sorted(group_images, key=lambda x: x[1], reverse=True)
                 self.duplicates.extend([img[0] for img in sorted_images[1:]])
                 
@@ -213,13 +213,13 @@ class ImageDeduplicator:
             for path, score, _ in group:
                 print(f"  - {path} (score: {score:.1f})")
         
-        # 显示所有相似图片组
+        # Show all similar image groups
         if similar_groups:
             print(f"\nFound {len(similar_groups)} groups of similar images.")
             print("Use left/right arrow keys to navigate between groups.")
             self.visualizer.show_all_groups(similar_groups)
             
-            # 保存duplicates文件
+            # Save duplicates file
             output_file = self.save_duplicate_list()
             print(f"\nFound {len(self.duplicates)} duplicate images.")
             print(f"Duplicate list saved to: {output_file}")
@@ -227,7 +227,7 @@ class ImageDeduplicator:
             print("No duplicate images found.")
 
     def save_duplicate_list(self):
-        """保存重复图片列表"""
+        """Save duplicate image list"""
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         output_file = self.folder_path / f"duplicates_{timestamp}.json"
         
@@ -265,7 +265,7 @@ class ImageDeduplicator:
         return output_file
 
     def get_adaptive_weights(self, image_metrics):
-        """根据图片内容动态调整权重"""
+        """Adjust weights based on image content"""
         weights = {
             'technical': 0.3,
             'face': 0.3,
@@ -273,7 +273,7 @@ class ImageDeduplicator:
             'scene': 0.2
         }
         
-        # 根据场景类型调整
+        # Adjust based on scene type
         if image_metrics['scene_type'] == 'portrait':
             weights['face'] = 0.4
             weights['technical'] = 0.2
